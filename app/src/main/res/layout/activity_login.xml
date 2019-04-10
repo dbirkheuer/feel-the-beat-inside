@@ -1,0 +1,132 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout
+        xmlns:android="http://schemas.android.com/apk/res/android"
+        xmlns:tools="http://schemas.android.com/tools"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        tools:context=".activities.LoginActivity">
+
+    <include layout="@layout/background_login"/>
+
+    <ScrollView android:layout_width="match_parent"
+                android:layout_height="match_parent">
+
+        <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:layout_margin="40dp"
+                android:gravity="center"
+                android:orientation="vertical">
+
+            <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center">
+
+                <ImageView
+                        android:layout_width="150dp"
+                        android:layout_height="150dp"
+                        android:src="@drawable/spotify"/>
+
+            </LinearLayout>
+
+            <LinearLayout android:layout_width="match_parent"
+                          android:layout_height="wrap_content"
+                          android:layout_marginTop="15dp"
+                          android:orientation="vertical">
+
+                <EditText
+                        android:id="@+id/editEmail"
+                        style="@style/LoginEdittext"
+                        android:inputType="textEmailAddress"
+                        android:hint="@string/e_mail"/>
+
+                <EditText
+                        android:id="@+id/editPassword"
+                        android:layout_marginTop="8dp"
+                        style="@style/LoginEdittext"
+                        android:inputType="textPassword"
+                        android:hint="@string/senha"/>
+
+            </LinearLayout>
+
+            <LinearLayout
+                    android:layout_width="wrap_content"
+                    android:layout_height="match_parent"
+                    android:orientation="horizontal"
+                    android:layout_marginTop="10dp">
+
+                <TextView
+                        android:id="@+id/textPasswordForgt"
+                        style="@style/LoginTextview"
+                        android:text="@string/esqueceu_a_senha"/>
+
+                <TextView
+                        android:id="@+id/textRecoveredHere"
+                        style="@style/LoginTextview"
+                        android:textColor="@color/colorAccent"
+                        android:text="@string/recupere_aqui"/>
+            </LinearLayout>
+
+            <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:layout_marginTop="20dp">
+
+                <Button
+                        android:id="@+id/buttonSignIn"
+                        style="@style/LoginButton"
+                        android:textColor="@color/colorPrimaryDark"
+                        android:text="@string/entrar"/>
+            </LinearLayout>
+
+            <LinearLayout
+                    android:layout_width="wrap_content"
+                    android:layout_height="match_parent"
+                    android:orientation="horizontal"
+                    android:layout_marginTop="10dp">
+
+                <TextView
+                        android:id="@+id/textNotHaveAccount"
+                        style="@style/LoginTextview"
+                        android:text="@string/nao_tem_conta"/>
+
+                <TextView
+                        android:id="@+id/textCreateHere"
+                        style="@style/LoginTextview"
+                        android:textColor="@color/colorAccent"
+                        android:text="@string/crie_aqui"/>
+            </LinearLayout>
+
+            <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content">
+
+                <View
+                        android:layout_width="wrap_content"
+                        android:layout_height="1dp"
+                        android:layout_marginTop="20dp"
+                        android:padding="1dp"
+                        android:background="@color/colorPrimary"/>
+            </LinearLayout>
+
+            <LinearLayout
+                    android:layout_width="wrap_content"
+                    android:layout_height="match_parent"
+                    android:orientation="horizontal"
+                    android:layout_marginTop="10dp">
+
+                <ImageView
+                        android:layout_width="30dp"
+                        android:layout_height="30dp"
+                        android:src="@drawable/spotify"/>
+                <TextView
+                        android:id="@+id/textLoginWithSpotfy"
+                        style="@style/LoginTextview"
+                        android:textSize="20dp"
+                        android:text="@string/entrar_com_spotfy"/>
+            </LinearLayout>
+        </LinearLayout>
+    </ScrollView>
+</RelativeLayout>
