@@ -7,8 +7,6 @@
     <string name="nav_header_subtitle">android.studio@android.com</string>
     <string name="nav_header_desc">Navigation header</string>
     <string name="action_settings">Settings</string>
-
-    <!-- TODO: Remove or change this placeholder text -->
     <string name="hello_blank_fragment">Hello blank fragment</string>
     <string name="criar">Criar</string>
     <string name="senha">Senha</string>
@@ -20,7 +18,7 @@
     <string name="entrar_com_spotfy">Entrar com Spotify</string>
     <string name="recupere_aqui">Recupere aqui</string>
     <string name="esqueceu_a_senha">Esqueceu a senha?</string>
-    <string name="title_activity_main2">Main2Activity</string>
+    <string name="title_activity_main2">Feel The BEat Inside</string>
     <string name="title_home">Home</string>
     <string name="title_dashboard">Dashboard</string>
     <string name="title_notifications">Notifications</string>

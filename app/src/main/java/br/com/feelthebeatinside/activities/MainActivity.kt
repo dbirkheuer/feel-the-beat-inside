@@ -1,96 +1,115 @@
 package br.com.feelthebeatinside.activities
 
 import android.os.Bundle
-import android.support.annotation.IdRes
-import android.support.design.widget.BottomNavigationView
-import android.support.v4.app.Fragment
-import android.support.v7.app.ActionBar
 import android.support.v7.app.AppCompatActivity
+import android.widget.Toast
 import br.com.feelthebeatinside.R
-import br.com.feelthebeatinside.fragments.HomeFragment
-import br.com.feelthebeatinside.fragments.PlayerFragment
-import br.com.feelthebeatinside.fragments.PlaylistFragment
-import kotlinx.android.synthetic.main.activity_main.*
+import br.com.feelthebeatinside.fragments.MainFragment
+import br.com.feelthebeatinside.manager.PlaybackManager
+import br.com.feelthebeatinside.manager.SearchPager
+import com.spotify.sdk.android.player.*
+import kaaes.spotify.webapi.android.SpotifyApi
+import kaaes.spotify.webapi.android.SpotifyService
+import java.lang.Exception
 
-class MainActivity : AppCompatActivity() {
+class MainActivity : AppCompatActivity(), ConnectionStateCallback {
 
-    lateinit var myActionBar: ActionBar
+    var authToken: String? = null
+
+    companion object {
+        var spotifyService: SpotifyService? = null
+        var mPlayer: SpotifyPlayer? = null
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_main)
+        try {
+            setContentView(R.layout.activity_main)
 
-        mapFields()
+            val manager = supportFragmentManager
+            manager.beginTransaction().replace(R.id.fragment_container, MainFragment()).commit()
 
-        navigation.setOnNavigationItemSelectedListener(mOnNavigationItemSelectedListener)
-    }
+            authToken = intent.getStringExtra(LoginActivity.AUTH_TOKEN)
 
-    private fun mapFields() {
-        myActionBar = supportActionBar!!
-        myActionBar.setHomeButtonEnabled(true)
-        myActionBar.setDisplayHomeAsUpEnabled(true)
-
-        replaceToHomeFragment()
-    }
-
-    private fun replaceToHomeFragment() {
-        replaceFragmenty(
-            fragment = HomeFragment(),
-            allowStateLoss = true,
-            containerViewId = R.id.frameContainer
-        )
-        myActionBar.setTitle("Home")
-    }
-
-    private fun replaceToPlaylistFragment() {
-        replaceFragmenty(
-            fragment = PlaylistFragment(),
-            allowStateLoss = true,
-            containerViewId = R.id.frameContainer
-        )
-        myActionBar.setTitle("Minha Playlist")
-    }
-
-    private fun replaceToPlayFragment() {
-        replaceFragmenty(
-            fragment = PlayerFragment(),
-            allowStateLoss = true,
-            containerViewId = R.id.frameContainer
-        )
-        myActionBar.setTitle("Tocando")
-    }
-
-    private val mOnNavigationItemSelectedListener = BottomNavigationView.OnNavigationItemSelectedListener { item ->
-        when (item.itemId) {
-            R.id.navigation_home -> {
-                replaceToHomeFragment()
-                return@OnNavigationItemSelectedListener true
-            }
-            R.id.navigation_playlist -> {
-                replaceToPlaylistFragment()
-                return@OnNavigationItemSelectedListener true
-            }
-            R.id.navigation_track -> {
-                replaceToPlayFragment()
-                return@OnNavigationItemSelectedListener true
-            }
+            onAuthenticationComplete(authToken!!)
+        } catch (e: Exception) {
+            val error = e.message
         }
-        false
+
     }
 
-    fun replaceFragmenty(
-        fragment: Fragment,
-        allowStateLoss: Boolean = false,
-        @IdRes containerViewId: Int
-    ) {
-        val ft = supportFragmentManager
-            .beginTransaction()
-            .replace(containerViewId, fragment)
-        if (!supportFragmentManager.isStateSaved) {
-            ft.commit()
-        } else if (allowStateLoss) {
-            ft.commitAllowingStateLoss()
+    private fun onAuthenticationComplete(auth_token: String) {
+        if (mPlayer == null) {
+            val playerConfig = Config(this, auth_token, LoginActivity.CLIENT_ID)
+
+            Spotify.getPlayer(playerConfig, this, object : SpotifyPlayer.InitializationObserver {
+                override fun onInitialized(spotifyPlayer: SpotifyPlayer) {
+                    mPlayer = spotifyPlayer
+                    mPlayer!!.addConnectionStateCallback(this@MainActivity)
+                    setServiceAPI()
+                }
+
+                override fun onError(throwable: Throwable) {
+                }
+            })
+        } else {
+            mPlayer!!.login(auth_token)
         }
+
+    }
+
+    private fun setServiceAPI() {
+        val api = SpotifyApi()
+        api.setAccessToken(authToken)
+
+        spotifyService = api.service
+    }
+
+    private fun isLoggedIn(): Boolean {
+        return mPlayer != null && mPlayer!!.isLoggedIn()
+    }
+
+
+    override fun onLoggedIn() {
+        SearchPager.instance(this).getNewRelease(null)
+        SearchPager.instance(this).getMyTopTracks(null)
+        SearchPager.instance(this).getFeatured()
+    }
+
+    override fun onLoggedOut() {
+
+    }
+
+    override fun onLoginFailed(error: Error) {
+
+    }
+
+    override fun onTemporaryError() {
+
+    }
+
+    override fun onConnectionMessage(message: String) {
+
+    }
+
+    override fun onPause() {
+        super.onPause()
+        if (mPlayer != null) {
+            mPlayer!!.removeConnectionStateCallback(this@MainActivity)
+        }
+    }
+
+    override fun onDestroy() {
+        Spotify.destroyPlayer(this)
+        super.onDestroy()
+    }
+
+
+    override fun onBackPressed() {
+        super.onBackPressed()
+
+        val playbackManager = PlaybackManager.instance
+        playbackManager.setSearchResultFragmentAdded(false)
     }
 
 
