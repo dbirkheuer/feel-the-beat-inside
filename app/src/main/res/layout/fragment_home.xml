@@ -40,7 +40,7 @@
                     android:layout_height="?attr/actionBarSize"
                     app:layout_collapseMode="pin"
                     app:popupTheme="@style/ThemeOverlay.AppCompat.Light"
-                    app:title=""/>
+                    app:title="@string/do_search"/>
 
         </android.support.design.widget.CollapsingToolbarLayout>
     </android.support.design.widget.AppBarLayout>
@@ -56,18 +56,6 @@
                 android:layout_margin="5dp"
                 android:padding="5dp"
                 android:orientation="vertical">
-
-            <TextView
-                    android:id="@+id/text_ten_less_played"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:textAlignment="center"
-                    android:textColor="@color/colorAccent"
-                    android:textStyle="bold"
-                    android:textSize="18sp"
-                    android:padding="1dp"
-                    android:visibility="gone"
-                    android:text="@string/top_ten_less_played"/>
 
             <android.support.v7.widget.RecyclerView
                     android:id="@+id/top_artist_RecyclerView"

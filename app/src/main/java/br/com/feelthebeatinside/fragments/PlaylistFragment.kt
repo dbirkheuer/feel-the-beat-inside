@@ -1,7 +1,6 @@
 package br.com.feelthebeatinside.fragments
 
 import android.content.Intent
-import android.graphics.Bitmap
 import android.os.Build
 import android.os.Bundle
 import android.os.Parcelable
@@ -22,7 +21,6 @@ import br.com.feelthebeatinside.manager.ExceptionManager
 import br.com.feelthebeatinside.manager.ListManager
 import br.com.feelthebeatinside.manager.PlaybackManager
 import br.com.feelthebeatinside.manager.SearchPager
-import br.com.feelthebeatinside.model.ArtistSearch
 import br.com.feelthebeatinside.model.Music
 import br.com.feelthebeatinside.services.SpotifyWebApiAndroidService
 import br.com.feelthebeatinside.util.Consts
@@ -30,12 +28,15 @@ import br.com.feelthebeatinside.util.TimeUtil
 import com.spotify.sdk.android.player.Error
 import com.spotify.sdk.android.player.Player
 import com.spotify.sdk.android.player.PlayerEvent
-import com.squareup.picasso.Picasso
-import com.squareup.picasso.Transformation
 import kaaes.spotify.webapi.android.models.Track
 
 
-class HomeFragment : Fragment(), Player.NotificationCallback {
+class PlaylistFragment : Fragment(), Player.NotificationCallback {
+    override fun onPlaybackError(p0: Error?) {
+
+    }
+
+    override fun onPlaybackEvent(p0: PlayerEvent?) {}
 
     private var toolbar: Toolbar? = null
     private var query: String? = null
@@ -43,8 +44,7 @@ class HomeFragment : Fragment(), Player.NotificationCallback {
     private var mRecyclerView: RecyclerView? = null
     private var mAdapter: TrackListAdapter? = null
     private var mSearchPager: SearchPager? = null
-    private var mSearchListener: SearchPager.CompleteListener? = null
-    private var mArtistListener: SearchPager.ArtistListener? = null
+    private var mSearchListener: SearchPager.onCompleteTopTrackListener? = null
     private var listManager: ListManager? = null
     private var playbackManager: PlaybackManager? = null
     private var layoutManager: LinearLayoutManager? = null
@@ -57,19 +57,16 @@ class HomeFragment : Fragment(), Player.NotificationCallback {
         listManager = ListManager.instance
         playbackManager = PlaybackManager.instance
 
-        SpotifyWebApiAndroidService.mPlayer!!.addNotificationCallback(this@HomeFragment)
+        SpotifyWebApiAndroidService.mPlayer!!.addNotificationCallback(this@PlaylistFragment)
     }
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
-        val view = inflater.inflate(R.layout.fragment_home, container, false)
-
+        val view = inflater.inflate(R.layout.fragment_radio, container, false)
         try {
-            if (SearchResultFragment.last_search_artist_id == null)
-                return view
 
             mapFields(view)
 
-            showTopTen()
+            showMyTopTrack()
         } catch (e: Exception) {
             ExceptionManager().showSimpleAtention(context!!, e.message.toString())
         }
@@ -93,8 +90,8 @@ class HomeFragment : Fragment(), Player.NotificationCallback {
         background_album = view.findViewById(R.id.background_album_field)
     }
 
-    private fun showTopTen() {
-        mSearchListener = object : SearchPager.CompleteListener {
+    private fun showMyTopTrack() {
+        mSearchListener = object : SearchPager.onCompleteTopTrackListener {
             override fun onComplete(items: List<Track>) {
                 listManager!!.clearList()
 
@@ -115,19 +112,14 @@ class HomeFragment : Fragment(), Player.NotificationCallback {
             }
 
             override fun onError(error: Throwable) {}
+
         }
-        mSearchPager!!.getTracksFromSearch(
-            query!!,
-            mSearchListener as SearchPager.CompleteListener
-        )
+        mSearchPager!!.getMyTopTracks(mSearchListener as SearchPager.onCompleteTopTrackListener)
 
     }
 
     private fun updateView() {
-        val mList = mSearchPager!!.getTracksFromArtistId(
-            listManager!!.trackLists,
-            SearchResultFragment.last_search_artist_id!!
-        )
+        val mList = listManager!!.trackLists
 
         if (mList.size == 0) return
 
@@ -136,41 +128,8 @@ class HomeFragment : Fragment(), Player.NotificationCallback {
 
         mRecyclerView!!.adapter = mAdapter
 
-        val artistName = mList.get(0).getArtist()
-        toolbar!!.setTitle(artistName)
+        toolbar!!.setTitle(getString(R.string.my_playlist))
 
-        mArtistListener = object : SearchPager.ArtistListener {
-            override fun onComplete(url: String) {
-                Picasso.with(context)
-                    .load(url)
-                    .transform(object : Transformation {
-                        override fun transform(source: Bitmap): Bitmap {
-                            val copy = source.copy(source.config, true)
-                            source.recycle()
-
-                            listManager!!.addArtist(ArtistSearch(artistName!!, copy))
-
-                            return copy
-                        }
-
-                        override fun key(): String? {
-                            return query
-                        }
-                    }).into(background_album)
-            }
-
-            override fun onError(error: Throwable) {}
-        }
-        mSearchPager!!.getArtist(
-            SearchResultFragment.last_search_artist_id!!,
-            mArtistListener as SearchPager.ArtistListener
-        )
-    }
-
-    override fun onPlaybackEvent(playerEvent: PlayerEvent) {
-    }
-
-    override fun onPlaybackError(p0: Error?) {
     }
 
     private inner class TrackListAdapter(private val musicList: List<Music>) :
@@ -213,6 +172,16 @@ class HomeFragment : Fragment(), Player.NotificationCallback {
                         startActivity(intent)
                     }
                     R.id.text_title -> {
+                        if (SpotifyWebApiAndroidService.mPlayer!!.playbackState.isPlaying) {
+                            val album = SpotifyWebApiAndroidService.mPlayer!!.metadata.currentTrack.albumName
+                            val title = SpotifyWebApiAndroidService.mPlayer!!.metadata.currentTrack.name
+                            val prevMusic = ListManager.instance.findCurrentMusic(title, album)
+
+                            if (prevMusic != null) {
+                                prevMusic.setPlaying(false)
+                            }
+                        }
+
                         SpotifyWebApiAndroidService.mPlayer!!.playUri(null, music!!.getUri(), 0, 0)
                         music!!.setPlaying(true)
                         mAdapter!!.notifyDataSetChanged()

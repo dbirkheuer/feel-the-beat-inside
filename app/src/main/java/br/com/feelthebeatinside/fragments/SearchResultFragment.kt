@@ -12,7 +12,6 @@ import android.support.v7.widget.LinearLayoutManager
 import android.support.v7.widget.RecyclerView
 import android.support.v7.widget.Toolbar
 import android.view.LayoutInflater
-import android.view.MenuItem
 import android.view.View
 import android.view.ViewGroup
 import android.widget.ImageButton
@@ -26,8 +25,8 @@ import br.com.feelthebeatinside.manager.PlaybackManager
 import br.com.feelthebeatinside.manager.SearchPager
 import br.com.feelthebeatinside.model.ArtistSearch
 import br.com.feelthebeatinside.model.Music
-import br.com.feelthebeatinside.services.SpotifyService
 import br.com.feelthebeatinside.services.SpotifyWebApiAndroidService
+import br.com.feelthebeatinside.util.Consts
 import com.spotify.sdk.android.player.Error
 import com.spotify.sdk.android.player.Player
 import com.spotify.sdk.android.player.PlayerEvent
@@ -40,9 +39,8 @@ class SearchResultFragment : Fragment() {
 
     companion object {
         const val QUERY = "QUERY"
-        const val DETAIL_MUSIC = "Detail Music"
 
-        fun newInstance(query: String): SearchResultFragment {
+        fun instance(query: String): SearchResultFragment {
             val args = Bundle()
             args.putString(QUERY, query)
 
@@ -51,6 +49,8 @@ class SearchResultFragment : Fragment() {
 
             return searchResultFragment
         }
+
+        var last_search_artist_id: String? = null
     }
 
     private var query: String? = null
@@ -66,7 +66,6 @@ class SearchResultFragment : Fragment() {
     private var layoutManager: LinearLayoutManager? = null
 
     private var state: Parcelable? = null
-    private var mActionBar: ActionBar? = null
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
         val view = inflater.inflate(R.layout.fragment_search_result, container, false)
@@ -75,11 +74,7 @@ class SearchResultFragment : Fragment() {
     }
 
     private fun mapFields(view: View?) {
-        mActionBar = (activity as MainActivity).supportActionBar
-        mActionBar!!.setHomeButtonEnabled(true)
-        mActionBar!!.setDisplayHomeAsUpEnabled(true)
-
-        mSearchPager = SearchPager.instance(this.activity!!)
+        mSearchPager = SearchPager.instance()
         retainInstance = true
         listManager = ListManager.instance
         playbackManager = PlaybackManager.instance
@@ -100,8 +95,6 @@ class SearchResultFragment : Fragment() {
         mRecyclerView!!.layoutManager = layoutManager
 
         toolbar = view.findViewById(R.id.toolbar)
-        toolbar!!.setNavigationOnClickListener(mListener)
-
         background_album = view.findViewById(R.id.background_album_field)
 
         if (query != "empty")
@@ -110,59 +103,10 @@ class SearchResultFragment : Fragment() {
             updateView()
     }
 
-    override fun onOptionsItemSelected(item: MenuItem): Boolean {
-        when (item.getItemId()) {
-            android.R.id.home -> {
-                fragmentManager!!.beginTransaction().replace(R.id.fragment, SearchFragment()).commit()
-                return true
-            }
-            else -> return super.onOptionsItemSelected(item)
-        }
-    }
-
     private val mPlayerNotify = object : Player.NotificationCallback {
-        override fun onPlaybackEvent(playerEvent: PlayerEvent) {
-            when (playerEvent.name) {
-                "kSpPlaybackNotifyPlay" -> {
-                }
+        override fun onPlaybackEvent(playerEvent: PlayerEvent) {}
 
-                "kSpPlaybackNotifyPause" -> {
-                    val title = SpotifyWebApiAndroidService.mPlayer!!.getMetadata().currentTrack.name
-                    val album = SpotifyWebApiAndroidService.mPlayer!!.getMetadata().currentTrack.albumName
-
-                    val music = ListManager.instance.findCurrentMusic(title, album)
-
-                    if (music != null)
-                        music.setPlaying(false)
-                    if (mAdapter != null)
-                        mAdapter!!.notifyDataSetChanged()
-                }
-
-                "kSpPlaybackNotifyTrackChanged" -> {
-                }
-
-                "kSpPlaybackEventAudioFlush" -> {
-                }
-
-                else -> {
-                }
-            }
-        }
-
-        override fun onPlaybackError(error: Error) {
-
-        }
-    }
-
-    private var mListener: View.OnClickListener = View.OnClickListener { view ->
-        when (view.id) {
-            R.id.navigation_home -> {
-                fragmentManager!!.beginTransaction().detach(this@SearchResultFragment).commit()
-
-                val playbackManager = PlaybackManager.instance
-                playbackManager.setSearchResultFragmentAdded(false)
-            }
-        }
+        override fun onPlaybackError(error: Error) {}
     }
 
     private fun queryData() {
@@ -229,27 +173,27 @@ class SearchResultFragment : Fragment() {
 
             }
         }
+        last_search_artist_id = mList.get(0).getArtist_id()!!
         mSearchPager!!.getArtist(mList.get(0).getArtist_id()!!, mArtistListener as SearchPager.ArtistListener)
     }
 
     private inner class TrackListHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
         private var music: Music? = null
-        private val title_text: TextView = itemView.findViewById(R.id.title_field)
-        private val artist_text: TextView = itemView.findViewById(R.id.artist_field)
-        private val album_text: TextView = itemView.findViewById(R.id.album_field)
-        private val more_button: ImageButton = itemView.findViewById(R.id.more_horiz)
+        private val text_title: TextView = itemView.findViewById(R.id.text_title)
+        private val text_artist: TextView = itemView.findViewById(R.id.text_artist)
+        private val text_album: TextView = itemView.findViewById(R.id.text_album)
+        private val image_more_details: ImageButton = itemView.findViewById(R.id.image_more_details)
 
         init {
-            more_button.setOnClickListener {
+            image_more_details.setOnClickListener {
                 val intent = Intent(context, TrackDetailActivity::class.java)
                 val args = Bundle()
-                args.putParcelable(DETAIL_MUSIC, music)
-
+                args.putParcelable(Consts.NAV_PARAM_DETAIL_MUSIC, music)
                 intent.putExtras(args)
                 startActivity(intent)
             }
 
-            title_text.setOnClickListener {
+            text_title.setOnClickListener {
                 if (SpotifyWebApiAndroidService.mPlayer!!.playbackState.isPlaying) {
                     val album = SpotifyWebApiAndroidService.mPlayer!!.metadata.currentTrack.albumName
                     val title = SpotifyWebApiAndroidService.mPlayer!!.metadata.currentTrack.name
@@ -260,11 +204,7 @@ class SearchResultFragment : Fragment() {
                     }
                 }
 
-                val uri = music!!.getUri()
-                val o = "spotify:album:5L8VJO457GXReKVVfRhzyM"
-
-                //SpotifyService.play(uri)
-                SpotifyWebApiAndroidService.mPlayer!!.playUri(null, uri, 0, 0)
+                SpotifyWebApiAndroidService.mPlayer!!.playUri(null, music!!.getUri(), 0, 0)
                 music!!.setPlaying(true)
                 mAdapter!!.notifyDataSetChanged()
 
@@ -288,14 +228,14 @@ class SearchResultFragment : Fragment() {
                 album += "..."
             }
 
-            title_text.setText(title)
-            artist_text.setText(music!!.getArtist())
-            album_text.setText(album)
+            text_title.text = title
+            text_artist.setText(music!!.getArtist())
+            text_album.setText(album)
 
             if (music!!.isPlaying())
-                title_text.setTextColor(resources.getColor(R.color.colorAccent, null))
+                text_title.setTextColor(resources.getColor(R.color.colorAccent, null))
             else
-                title_text.setTextColor(resources.getColor(R.color.colorWhite, null))
+                text_title.setTextColor(resources.getColor(R.color.colorWhite, null))
         }
     }
 
@@ -304,7 +244,7 @@ class SearchResultFragment : Fragment() {
 
         override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): TrackListHolder {
             val layoutInflater = LayoutInflater.from(activity)
-            val view = layoutInflater.inflate(R.layout.music, parent, false)
+            val view = layoutInflater.inflate(R.layout.row_music, parent, false)
             return TrackListHolder(view)
         }
 

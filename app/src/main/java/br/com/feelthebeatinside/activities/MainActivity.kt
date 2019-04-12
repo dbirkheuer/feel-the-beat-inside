@@ -33,9 +33,9 @@ class MainActivity : AppCompatActivity(), ConnectionStateCallback {
     }
 
     override fun onLoggedIn() {
-        SearchPager.instance(this).getNewRelease(null)
-        SearchPager.instance(this).getMyTopTracks(null)
-        SearchPager.instance(this).getFeatured()
+        SearchPager.instance().getNewRelease(null)
+        SearchPager.instance().getMyTopTracks(null)
+        SearchPager.instance().getFeatured()
     }
 
     override fun onLoggedOut() {}

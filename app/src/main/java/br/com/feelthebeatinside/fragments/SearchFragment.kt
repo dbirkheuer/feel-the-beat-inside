@@ -8,28 +8,34 @@ import android.support.v4.view.ViewCompat
 import android.support.v4.view.ViewPropertyAnimatorListener
 import android.support.v7.widget.LinearLayoutManager
 import android.support.v7.widget.RecyclerView
-import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.*
 
 import br.com.feelthebeatinside.R
+import br.com.feelthebeatinside.manager.ExceptionManager
 import br.com.feelthebeatinside.manager.ListManager
 import br.com.feelthebeatinside.manager.PlaybackManager
 import br.com.feelthebeatinside.model.ArtistSearch
 import iammert.com.view.scalinglib.ScalingLayout
 import iammert.com.view.scalinglib.ScalingLayoutListener
 import iammert.com.view.scalinglib.State
+import kaaes.spotify.webapi.android.models.Artist
+import java.lang.Exception
 
 
 class SearchFragment : Fragment() {
     private val TAG = "Spotify SearchFragment"
 
-    private var textViewSearch: TextView? = null
-    private var editTextSearch: EditText? = null
-    private var scalingLayout: ScalingLayout? = null
-    private var searchListView: RecyclerView? = null
+    private lateinit var textViewSearch: TextView
+    private lateinit var editTextSearch: EditText
+    private lateinit var scalingLayout: ScalingLayout
+    private lateinit var searchListView: RecyclerView
+    private lateinit var searchLayout: RelativeLayout
+    private lateinit var rootLayout: LinearLayout
+    private lateinit var button_search: ImageButton
+
     private var mAdapter: ArtistListAdapter? = null
     private var mFragmentManager: FragmentManager? = null
 
@@ -48,42 +54,57 @@ class SearchFragment : Fragment() {
         }
 
         var query: String? = null
+        var artist: ArtistSearch? = null
     }
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
+        val view = inflater.inflate(R.layout.fragment_search, container, false)
         val manager = PlaybackManager.instance
 
-        if (manager.isSearchResultFragmentAdded()) {
-            mFragmentManager = fragmentManager!!
-            val ft = mFragmentManager!!.beginTransaction()
-            ft.add(R.id.fragment, SearchResultFragment.newInstance("empty"))
-                .addToBackStack(TAG)
-                .commit()
+        try {
+            if (manager.isSearchResultFragmentAdded()) {
+                mFragmentManager = fragmentManager!!
+                val ft = mFragmentManager!!.beginTransaction()
+                ft.add(R.id.fragment, SearchResultFragment.instance(query!!))
+                    .addToBackStack(TAG)
+                    .commit()
+            }
+
+            mapFields(view)
+        } catch (e: Exception) {
+            ExceptionManager().showSimpleAtention(context!!, e.message.toString())
         }
 
-        val view = inflater.inflate(R.layout.fragment_search, container, false)
+        return view
+    }
 
+    private fun mapFields(view: View) {
         textViewSearch = view.findViewById(R.id.textViewSearch)
-        val searchLayout = view.findViewById<RelativeLayout>(R.id.searchLayout)
-        val searchButton = view.findViewById<ImageButton>(R.id.search_text_button)
+        rootLayout = view.findViewById(R.id.rootLayout)
+        rootLayout.setOnClickListener(mClickListener)
+
+        searchLayout = view.findViewById(R.id.searchLayout)
 
         editTextSearch = view.findViewById(R.id.editTextSearch)
-        searchButton.setOnClickListener(mListener)
-        scalingLayout = view.findViewById(R.id.scalingLayout)
-        searchListView = view.findViewById(R.id.Artist_search_list)
 
-        searchListView!!.layoutManager = LinearLayoutManager(context)
+        button_search = view.findViewById(R.id.button_search)
+        button_search.setOnClickListener(mClickListener)
 
         mAdapter = ArtistListAdapter(ListManager.instance.artists)
-        searchListView!!.adapter = mAdapter
 
-        scalingLayout!!.setListener(object : ScalingLayoutListener {
+        searchListView = view.findViewById(R.id.Artist_search_list)
+        searchListView.layoutManager = LinearLayoutManager(context)
+        searchListView.adapter = mAdapter
+
+        scalingLayout = view.findViewById(R.id.scalingLayout)
+        scalingLayout.setOnClickListener(mClickListener)
+        scalingLayout.setListener(object : ScalingLayoutListener {
             override fun onCollapsed() {
-                ViewCompat.animate(textViewSearch!!).alpha(1f).setDuration(150).start()
+                ViewCompat.animate(textViewSearch).alpha(1f).setDuration(150).start()
                 ViewCompat.animate(searchLayout).alpha(0f).setDuration(150)
                     .setListener(object : ViewPropertyAnimatorListener {
                         override fun onAnimationStart(view: View) {
-                            textViewSearch!!.visibility = View.VISIBLE
+                            textViewSearch.visibility = View.VISIBLE
                         }
 
                         override fun onAnimationEnd(view: View) {
@@ -95,7 +116,7 @@ class SearchFragment : Fragment() {
             }
 
             override fun onExpanded() {
-                ViewCompat.animate(textViewSearch!!).alpha(0f).setDuration(200).start()
+                ViewCompat.animate(textViewSearch).alpha(0f).setDuration(200).start()
                 ViewCompat.animate(searchLayout).alpha(1f).setDuration(200)
                     .setListener(object : ViewPropertyAnimatorListener {
                         override fun onAnimationStart(view: View) {
@@ -103,7 +124,7 @@ class SearchFragment : Fragment() {
                         }
 
                         override fun onAnimationEnd(view: View) {
-                            textViewSearch!!.visibility = View.INVISIBLE
+                            textViewSearch.visibility = View.INVISIBLE
                         }
 
                         override fun onAnimationCancel(view: View) {}
@@ -112,45 +133,45 @@ class SearchFragment : Fragment() {
 
             override fun onProgress(progress: Float) {}
         })
-
-        scalingLayout!!.setOnClickListener {
-            if (scalingLayout!!.state == State.COLLAPSED) {
-                scalingLayout!!.expand()
-            }
-        }
-
-        view.findViewById<LinearLayout>(R.id.rootLayout).setOnClickListener(View.OnClickListener {
-            if (scalingLayout!!.state == State.EXPANDED) {
-                scalingLayout!!.collapse()
-
-                if (editTextSearch!!.text.toString().isEmpty())
-                    textViewSearch!!.text = getString(R.string.search)
-            }
-        })
-
-        return view
     }
 
-    private var mListener: View.OnClickListener = View.OnClickListener { view ->
-        when (view.id) {
-            R.id.search_text_button -> {
-                query = editTextSearch!!.text.toString()
+    private var mClickListener: View.OnClickListener = View.OnClickListener { view ->
+        try {
+            when (view.id) {
+                R.id.button_search -> {
+                    query = editTextSearch.text.toString()
 
-                scalingLayout!!.collapse()
+                    scalingLayout.collapse()
 
-                if (query!!.isEmpty()) {
-                    textViewSearch!!.text = getString(R.string.search)
-                } else {
+                    if (query!!.isEmpty()) {
+                        textViewSearch.text = getString(R.string.search)
+                    } else {
 
-                    mFragmentManager = fragmentManager!!
-                    val ft = mFragmentManager!!.beginTransaction()
-                    ft.add(R.id.fragment, SearchResultFragment.newInstance(query!!))
-                        .addToBackStack(TAG)
-                        .commit()
+                        mFragmentManager = fragmentManager!!
+                        val ft = mFragmentManager!!.beginTransaction()
+                        ft.add(R.id.fragment, SearchResultFragment.instance(query!!))
+                            .addToBackStack(TAG)
+                            .commit()
 
-                    textViewSearch!!.text = query
+                        textViewSearch.text = query
+                    }
+                }
+                R.id.rootLayout -> {
+                    if (scalingLayout.state == State.EXPANDED) {
+                        scalingLayout.collapse()
+
+                        if (editTextSearch.text.toString().isEmpty())
+                            textViewSearch.text = getString(R.string.search)
+                    }
+                }
+                R.id.scalingLayout -> {
+                    if (scalingLayout.state == State.COLLAPSED) {
+                        scalingLayout.expand()
+                    }
                 }
             }
+        } catch (e: Exception) {
+            ExceptionManager().showSimpleAtention(context!!, e.message.toString())
         }
     }
 
@@ -163,6 +184,8 @@ class SearchFragment : Fragment() {
             artistSearch = search
             artistName.text = artistSearch!!.name
             artistImage.setImageBitmap(artistSearch!!.image)
+
+
         }
     }
 

@@ -13,7 +13,7 @@
         android:id="@+id/track_image_field"
         android:layout_width="150dp"
         android:layout_height="150dp"
-        android:src="@drawable/maroon_sample_album"/>
+        android:src="@drawable/ze_ramalho_demo"/>
 
     <TextView
         android:id="@+id/track_name"
@@ -23,8 +23,7 @@
         android:textSize="13sp"
         android:textStyle="bold"
         android:textColor="@color/colorWhite"
-        android:textAlignment="center"
-        android:text="Maroon 5"/>
+        android:textAlignment="center"/>
 
     <TextView
         android:layout_width="match_parent"

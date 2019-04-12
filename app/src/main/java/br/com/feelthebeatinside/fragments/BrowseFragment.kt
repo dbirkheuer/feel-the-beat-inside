@@ -59,7 +59,7 @@ class BrowseFragment : Fragment() {
 
                 }
             }
-            SearchPager.instance(context!!).getNewRelease(listener)
+            SearchPager.instance().getNewRelease(listener)
         }
 
         if (mAdapter == null)

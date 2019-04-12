@@ -52,7 +52,7 @@ class LoginActivity : Activity() {
         buttonSignIn = findViewById(R.id.buttonSignIn)
         buttonSignIn.setOnClickListener(mListener)
 
-        textLoginWithSpotfy = findViewById(R.id.textLoginWithSpotfy)
+        textLoginWithSpotfy = findViewById(R.id.textLoginWithSpotify)
         textLoginWithSpotfy.setOnClickListener(mListener)
 
     }
@@ -87,7 +87,7 @@ class LoginActivity : Activity() {
 
     var mListener: View.OnClickListener = View.OnClickListener { view ->
         when (view.id) {
-            R.id.textLoginWithSpotfy -> openLoginWindow()
+            R.id.textLoginWithSpotify -> openLoginWindow()
             R.id.buttonSignIn -> openLoginWindow()
             R.id.textRecoveredHere -> startActivity(Intent(this, RecoverPasswordActivity::class.java))
             R.id.textCreateHere -> startActivity(Intent(this, CreateAccountActivity::class.java))
@@ -105,9 +105,6 @@ class LoginActivity : Activity() {
             val request = SpotifyWebApiAndroidService().getRequest()
             AuthenticationClient.openLoginActivity(this, RequestCode.REQUEST_AUTHENTICATION_SPOTIFY, request)
         }
-
-
-
     }
 
     fun destroy() {
