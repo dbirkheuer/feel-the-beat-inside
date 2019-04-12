@@ -5,28 +5,18 @@ import java.util.ArrayList
 
 class ListManager private constructor() {
 
-    val trackLists: ArrayList<Music>
-    val artists: ArrayList<ArtistSearch>
-    val albumNewArrayList: ArrayList<AlbumNew>
-    val topArtists: ArrayList<TopArtist>
-    val topTracks: ArrayList<TopTrack>
-    val simplePlaylists: ArrayList<SimplePlaylist>
-
-    init {
-        trackLists = ArrayList()
-        artists = ArrayList()
-        albumNewArrayList = ArrayList()
-        topArtists = ArrayList()
-        topTracks = ArrayList()
-        simplePlaylists = ArrayList()
-    }
+    val trackLists: ArrayList<Music> = ArrayList()
+    val artists: ArrayList<ArtistSearch> = ArrayList()
+    val albumNewArrayList: ArrayList<AlbumNew> = ArrayList()
+    val topArtists: ArrayList<TopArtist> = ArrayList()
+    val topTracks: ArrayList<TopTrack> = ArrayList()
+    val simplePlaylists: ArrayList<SimplePlaylist> = ArrayList()
 
     fun addSimpleList(simple: SimplePlaylist) {
         simplePlaylists.add(simple)
     }
 
     fun addTopTrack(track: TopTrack) {
-
         topTracks.add(track)
     }
 
@@ -39,13 +29,11 @@ class ListManager private constructor() {
     }
 
     fun addArtist(search: ArtistSearch) {
-
         var found: ArtistSearch? = null
 
         for (artistSearch in artists) {
-            if (artistSearch.name.equals(search.name)) {
+            if (artistSearch.name.equals(search.name))
                 found = artistSearch
-            }
         }
 
         if (found != null)
@@ -68,7 +56,6 @@ class ListManager private constructor() {
                 return m
             }
         }
-
         return null
     }
 

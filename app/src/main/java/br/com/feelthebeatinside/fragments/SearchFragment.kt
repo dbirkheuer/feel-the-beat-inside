@@ -31,8 +31,7 @@ class SearchFragment : Fragment() {
     private var scalingLayout: ScalingLayout? = null
     private var searchListView: RecyclerView? = null
     private var mAdapter: ArtistListAdapter? = null
-
-    lateinit var mFragmentManager: FragmentManager
+    private var mFragmentManager: FragmentManager? = null
 
     companion object {
         @SuppressLint("ResourceType")
@@ -47,13 +46,16 @@ class SearchFragment : Fragment() {
             }
             return fragment
         }
+
+        var query: String? = null
     }
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
         val manager = PlaybackManager.instance
+
         if (manager.isSearchResultFragmentAdded()) {
             mFragmentManager = fragmentManager!!
-            val ft = mFragmentManager.beginTransaction()
+            val ft = mFragmentManager!!.beginTransaction()
             ft.add(R.id.fragment, SearchResultFragment.newInstance("empty"))
                 .addToBackStack(TAG)
                 .commit()
@@ -121,8 +123,8 @@ class SearchFragment : Fragment() {
             if (scalingLayout!!.state == State.EXPANDED) {
                 scalingLayout!!.collapse()
 
-                if (editTextSearch!!.text.toString() == "")
-                    textViewSearch!!.text = "Search"
+                if (editTextSearch!!.text.toString().isEmpty())
+                    textViewSearch!!.text = getString(R.string.search)
             }
         })
 
@@ -132,17 +134,17 @@ class SearchFragment : Fragment() {
     private var mListener: View.OnClickListener = View.OnClickListener { view ->
         when (view.id) {
             R.id.search_text_button -> {
-                val query = editTextSearch!!.text.toString()
+                query = editTextSearch!!.text.toString()
 
                 scalingLayout!!.collapse()
 
-                if (query.isEmpty()) {
-                    textViewSearch!!.text = "Search"
+                if (query!!.isEmpty()) {
+                    textViewSearch!!.text = getString(R.string.search)
                 } else {
 
                     mFragmentManager = fragmentManager!!
-                    val ft = mFragmentManager.beginTransaction()
-                    ft.add(R.id.fragment, SearchResultFragment.newInstance(query))
+                    val ft = mFragmentManager!!.beginTransaction()
+                    ft.add(R.id.fragment, SearchResultFragment.newInstance(query!!))
                         .addToBackStack(TAG)
                         .commit()
 

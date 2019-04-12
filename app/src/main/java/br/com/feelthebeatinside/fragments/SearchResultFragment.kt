@@ -7,10 +7,12 @@ import android.os.Bundle
 import android.os.Parcelable
 import android.support.annotation.RequiresApi
 import android.support.v4.app.Fragment
+import android.support.v7.app.ActionBar
 import android.support.v7.widget.LinearLayoutManager
 import android.support.v7.widget.RecyclerView
 import android.support.v7.widget.Toolbar
 import android.view.LayoutInflater
+import android.view.MenuItem
 import android.view.View
 import android.view.ViewGroup
 import android.widget.ImageButton
@@ -24,6 +26,8 @@ import br.com.feelthebeatinside.manager.PlaybackManager
 import br.com.feelthebeatinside.manager.SearchPager
 import br.com.feelthebeatinside.model.ArtistSearch
 import br.com.feelthebeatinside.model.Music
+import br.com.feelthebeatinside.services.SpotifyService
+import br.com.feelthebeatinside.services.SpotifyWebApiAndroidService
 import com.spotify.sdk.android.player.Error
 import com.spotify.sdk.android.player.Player
 import com.spotify.sdk.android.player.PlayerEvent
@@ -32,7 +36,7 @@ import com.squareup.picasso.Transformation
 import kaaes.spotify.webapi.android.models.Track
 
 
-class SearchResultFragment : Fragment(), Player.NotificationCallback {
+class SearchResultFragment : Fragment() {
 
     companion object {
         const val QUERY = "QUERY"
@@ -60,66 +64,110 @@ class SearchResultFragment : Fragment(), Player.NotificationCallback {
     private var listManager: ListManager? = null
     private var playbackManager: PlaybackManager? = null
     private var layoutManager: LinearLayoutManager? = null
-    private val mPlayer = MainActivity.mPlayer
-    private var state: Parcelable? = null
 
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
+    private var state: Parcelable? = null
+    private var mActionBar: ActionBar? = null
+
+    override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
+        val view = inflater.inflate(R.layout.fragment_search_result, container, false)
+        mapFields(view)
+        return view
+    }
+
+    private fun mapFields(view: View?) {
+        mActionBar = (activity as MainActivity).supportActionBar
+        mActionBar!!.setHomeButtonEnabled(true)
+        mActionBar!!.setDisplayHomeAsUpEnabled(true)
+
         mSearchPager = SearchPager.instance(this.activity!!)
         retainInstance = true
         listManager = ListManager.instance
         playbackManager = PlaybackManager.instance
-
         playbackManager!!.setSearchResultFragmentAdded(true)
 
-        mPlayer!!.addNotificationCallback(this@SearchResultFragment)
-
-    }
-
-    @RequiresApi(Build.VERSION_CODES.LOLLIPOP)
-    override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
+        SpotifyWebApiAndroidService.mPlayer!!.addNotificationCallback(mPlayerNotify)
         query = arguments!!.getString(QUERY)
-
-        val view = inflater.inflate(R.layout.fragment_search_result, container, false)
 
         playbackManager = PlaybackManager.instance
         state = playbackManager!!.getState()
 
         layoutManager = LinearLayoutManager(activity)
 
-        if (state != null) {
+        if (state != null)
             layoutManager!!.onRestoreInstanceState(state)
-        }
 
-        mRecyclerView = view.findViewById(R.id.track_list_recycler_view)
+        mRecyclerView = view!!.findViewById(R.id.track_list_recycler_view)
         mRecyclerView!!.layoutManager = layoutManager
 
         toolbar = view.findViewById(R.id.toolbar)
-
-        toolbar!!.navigationIcon = resources.getDrawable(R.drawable.ic_arrow_back_white_24dp, null)
-        toolbar!!.setNavigationOnClickListener {
-            fragmentManager!!.beginTransaction().detach(this@SearchResultFragment).commit()
-
-            val playbackManager = PlaybackManager.instance
-            playbackManager.setSearchResultFragmentAdded(false)
-        }
+        toolbar!!.setNavigationOnClickListener(mListener)
 
         background_album = view.findViewById(R.id.background_album_field)
 
-        if (query != "empty") {
+        if (query != "empty")
             queryData()
-        } else {
+        else
             updateView()
+    }
+
+    override fun onOptionsItemSelected(item: MenuItem): Boolean {
+        when (item.getItemId()) {
+            android.R.id.home -> {
+                fragmentManager!!.beginTransaction().replace(R.id.fragment, SearchFragment()).commit()
+                return true
+            }
+            else -> return super.onOptionsItemSelected(item)
+        }
+    }
+
+    private val mPlayerNotify = object : Player.NotificationCallback {
+        override fun onPlaybackEvent(playerEvent: PlayerEvent) {
+            when (playerEvent.name) {
+                "kSpPlaybackNotifyPlay" -> {
+                }
+
+                "kSpPlaybackNotifyPause" -> {
+                    val title = SpotifyWebApiAndroidService.mPlayer!!.getMetadata().currentTrack.name
+                    val album = SpotifyWebApiAndroidService.mPlayer!!.getMetadata().currentTrack.albumName
+
+                    val music = ListManager.instance.findCurrentMusic(title, album)
+
+                    if (music != null)
+                        music.setPlaying(false)
+                    if (mAdapter != null)
+                        mAdapter!!.notifyDataSetChanged()
+                }
+
+                "kSpPlaybackNotifyTrackChanged" -> {
+                }
+
+                "kSpPlaybackEventAudioFlush" -> {
+                }
+
+                else -> {
+                }
+            }
         }
 
-        return view
+        override fun onPlaybackError(error: Error) {
+
+        }
+    }
+
+    private var mListener: View.OnClickListener = View.OnClickListener { view ->
+        when (view.id) {
+            R.id.navigation_home -> {
+                fragmentManager!!.beginTransaction().detach(this@SearchResultFragment).commit()
+
+                val playbackManager = PlaybackManager.instance
+                playbackManager.setSearchResultFragmentAdded(false)
+            }
+        }
     }
 
     private fun queryData() {
-
         mSearchListener = object : SearchPager.CompleteListener {
             override fun onComplete(items: List<Track>) {
-
                 listManager!!.clearList()
 
                 for (track in items) {
@@ -133,22 +181,17 @@ class SearchResultFragment : Fragment(), Player.NotificationCallback {
                         track.artists[0].name,
                         track.artists[0].id
                     )
-
                     listManager!!.addTrack(music)
                 }
                 updateView()
             }
 
-            override fun onError(error: Throwable) {
-
-            }
+            override fun onError(error: Throwable) {}
         }
-
         mSearchPager!!.getTracksFromSearch(query!!, mSearchListener as SearchPager.CompleteListener)
     }
 
     private fun updateView() {
-
         val mList = listManager!!.trackLists
 
         if (mList.size == 0) return
@@ -163,9 +206,9 @@ class SearchResultFragment : Fragment(), Player.NotificationCallback {
         toolbar!!.setTitle(artistName)
 
         mArtistListener = object : SearchPager.ArtistListener {
-            override fun onComplete(img_url: String) {
+            override fun onComplete(url: String) {
                 Picasso.with(context)
-                    .load(img_url)
+                    .load(url)
                     .transform(object : Transformation {
                         override fun transform(source: Bitmap): Bitmap {
                             val copy = source.copy(source.config, true)
@@ -179,8 +222,7 @@ class SearchResultFragment : Fragment(), Player.NotificationCallback {
                         override fun key(): String? {
                             return query
                         }
-                    })
-                    .into(background_album)
+                    }).into(background_album)
             }
 
             override fun onError(error: Throwable) {
@@ -188,38 +230,6 @@ class SearchResultFragment : Fragment(), Player.NotificationCallback {
             }
         }
         mSearchPager!!.getArtist(mList.get(0).getArtist_id()!!, mArtistListener as SearchPager.ArtistListener)
-    }
-
-    override fun onPlaybackEvent(playerEvent: PlayerEvent) {
-        when (playerEvent.name) {
-            "kSpPlaybackNotifyPlay" -> {
-            }
-
-            "kSpPlaybackNotifyPause" -> {
-                val title = mPlayer!!.metadata.currentTrack.name
-                val album = mPlayer.metadata.currentTrack.albumName
-
-                val music = ListManager.instance.findCurrentMusic(title, album)
-
-                if (music != null)
-                    music.setPlaying(false)
-                if (mAdapter != null)
-                    mAdapter!!.notifyDataSetChanged()
-            }
-
-            "kSpPlaybackNotifyTrackChanged" -> {
-            }
-
-            "kSpPlaybackEventAudioFlush" -> {
-            }
-
-            else -> {
-            }
-        }
-    }
-
-    override fun onPlaybackError(error: Error) {
-
     }
 
     private inner class TrackListHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
@@ -232,7 +242,6 @@ class SearchResultFragment : Fragment(), Player.NotificationCallback {
         init {
             more_button.setOnClickListener {
                 val intent = Intent(context, TrackDetailActivity::class.java)
-
                 val args = Bundle()
                 args.putParcelable(DETAIL_MUSIC, music)
 
@@ -241,10 +250,9 @@ class SearchResultFragment : Fragment(), Player.NotificationCallback {
             }
 
             title_text.setOnClickListener {
-                if (mPlayer!!.playbackState.isPlaying) {
-                    val album = mPlayer.metadata.currentTrack.albumName
-                    val title = mPlayer.metadata.currentTrack.name
-
+                if (SpotifyWebApiAndroidService.mPlayer!!.playbackState.isPlaying) {
+                    val album = SpotifyWebApiAndroidService.mPlayer!!.metadata.currentTrack.albumName
+                    val title = SpotifyWebApiAndroidService.mPlayer!!.metadata.currentTrack.name
                     val prevMusic = ListManager.instance.findCurrentMusic(title, album)
 
                     if (prevMusic != null) {
@@ -252,9 +260,14 @@ class SearchResultFragment : Fragment(), Player.NotificationCallback {
                     }
                 }
 
-                mPlayer.playUri(null, music!!.getUri(), 0, 0)
+                val uri = music!!.getUri()
+                val o = "spotify:album:5L8VJO457GXReKVVfRhzyM"
+
+                //SpotifyService.play(uri)
+                SpotifyWebApiAndroidService.mPlayer!!.playUri(null, uri, 0, 0)
                 music!!.setPlaying(true)
                 mAdapter!!.notifyDataSetChanged()
+
             }
         }
 
@@ -290,18 +303,14 @@ class SearchResultFragment : Fragment(), Player.NotificationCallback {
         RecyclerView.Adapter<TrackListHolder>() {
 
         override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): TrackListHolder {
-
             val layoutInflater = LayoutInflater.from(activity)
-
             val view = layoutInflater.inflate(R.layout.music, parent, false)
-
             return TrackListHolder(view)
         }
 
         @RequiresApi(Build.VERSION_CODES.M)
         override fun onBindViewHolder(holder: TrackListHolder, position: Int) {
             val music = musicList[position]
-
             holder.bindMusic(music)
         }
 
@@ -313,7 +322,6 @@ class SearchResultFragment : Fragment(), Player.NotificationCallback {
     override fun onPause() {
         super.onPause()
         state = layoutManager!!.onSaveInstanceState()!!
-
         playbackManager = PlaybackManager.instance
         playbackManager!!.setState(state!!)
     }

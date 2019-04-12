@@ -7,6 +7,7 @@ import br.com.feelthebeatinside.model.AlbumNew
 import br.com.feelthebeatinside.model.SimplePlaylist
 import br.com.feelthebeatinside.model.TopArtist
 import br.com.feelthebeatinside.model.TopTrack
+import br.com.feelthebeatinside.services.SpotifyWebApiAndroidService
 import kaaes.spotify.webapi.android.SpotifyCallback
 import kaaes.spotify.webapi.android.SpotifyError
 import kaaes.spotify.webapi.android.SpotifyService
@@ -15,8 +16,6 @@ import retrofit.client.Response
 import java.util.*
 
 class SearchPager {
-
-    private val spotifyService = MainActivity.spotifyService
 
     interface CompleteListener {
         fun onComplete(items: List<Track>)
@@ -49,7 +48,7 @@ class SearchPager {
 
     private fun getData(query: String, listener: CompleteListener) {
 
-        spotifyService!!.searchTracks(query, object : SpotifyCallback<TracksPager>() {
+        SpotifyWebApiAndroidService.spotifyService!!.searchTracks(query, object : SpotifyCallback<TracksPager>() {
             override fun failure(spotifyError: SpotifyError) {
                 listener.onError(spotifyError)
             }
@@ -62,7 +61,7 @@ class SearchPager {
 
     fun getArtist(id: String, listener: ArtistListener) {
 
-        spotifyService!!.getArtist(id, object : SpotifyCallback<Artist>() {
+        SpotifyWebApiAndroidService.spotifyService!!.getArtist(id, object : SpotifyCallback<Artist>() {
             override fun failure(spotifyError: SpotifyError) {
                 Log.d("SearchPager", spotifyError.toString())
                 listener.onError(spotifyError)
@@ -81,7 +80,7 @@ class SearchPager {
 
         val listManager = ListManager.instance
 
-        spotifyService!!.getTopArtists(options, object : SpotifyCallback<Pager<Artist>>() {
+        SpotifyWebApiAndroidService.spotifyService!!.getTopArtists(options, object : SpotifyCallback<Pager<Artist>>() {
             override fun failure(spotifyError: SpotifyError) {
                 Log.d("SearchPager", spotifyError.toString())
 
@@ -109,7 +108,7 @@ class SearchPager {
 
         val listManager = ListManager.instance
 
-        spotifyService!!.getTopTracks(options, object : SpotifyCallback<Pager<Track>>() {
+        SpotifyWebApiAndroidService.spotifyService!!.getTopTracks(options, object : SpotifyCallback<Pager<Track>>() {
             override fun failure(spotifyError: SpotifyError) {
                 Log.d("SearchPager", spotifyError.toString())
 
@@ -139,7 +138,7 @@ class SearchPager {
 
         val listManager = ListManager.instance
 
-        spotifyService!!.getNewReleases(options, object : SpotifyCallback<NewReleases>() {
+        SpotifyWebApiAndroidService.spotifyService!!.getNewReleases(options, object : SpotifyCallback<NewReleases>() {
             override fun failure(spotifyError: SpotifyError) {
                 Log.d("SearchPager", spotifyError.toString())
 
@@ -150,34 +149,36 @@ class SearchPager {
                 val albums = newReleases.albums.items
 
                 for (albumSimple in albums) {
-                    spotifyService.getAlbum(albumSimple.id, object : SpotifyCallback<Album>() {
-                        override fun failure(spotifyError: SpotifyError) {
-                            Log.d("SearchPage Followup", spotifyError.toString())
+                    SpotifyWebApiAndroidService.spotifyService!!.getAlbum(
+                        albumSimple.id,
+                        object : SpotifyCallback<Album>() {
+                            override fun failure(spotifyError: SpotifyError) {
+                                Log.d("SearchPage Followup", spotifyError.toString())
 
-                            listener?.onError(spotifyError)
-                        }
-
-                        override fun success(album: Album, response: Response) {
-
-                            Log.d("SearchPage Followup", albumSimple.name)
-                            Log.d("SearchPage Followup", albumSimple.id)
-                            Log.d("SearchPage Followup", albumSimple.images[1].url)
-
-                            val list = album.artists
-                            val artists = ArrayList<String>()
-
-                            for (simple in list) {
-                                Log.d("SearchPage Followup", simple.name)
-                                artists.add(simple.name)
+                                listener?.onError(spotifyError)
                             }
 
-                            val albumNew = AlbumNew(albumSimple.name, albumSimple.images[1].url, artists)
+                            override fun success(album: Album, response: Response) {
 
-                            listManager.addNewAlbum(albumNew)
+                                Log.d("SearchPage Followup", albumSimple.name)
+                                Log.d("SearchPage Followup", albumSimple.id)
+                                Log.d("SearchPage Followup", albumSimple.images[1].url)
 
-                        }
+                                val list = album.artists
+                                val artists = ArrayList<String>()
 
-                    })
+                                for (simple in list) {
+                                    Log.d("SearchPage Followup", simple.name)
+                                    artists.add(simple.name)
+                                }
+
+                                val albumNew = AlbumNew(albumSimple.name, albumSimple.images[1].url, artists)
+
+                                listManager.addNewAlbum(albumNew)
+
+                            }
+
+                        })
                 }
 
                 listener?.onComplete()
@@ -189,26 +190,29 @@ class SearchPager {
         val options = HashMap<String, Any>()
         options[SpotifyService.LIMIT] = 30
 
-        spotifyService!!.getMyPlaylists(options, object : SpotifyCallback<Pager<PlaylistSimple>>() {
-            override fun failure(spotifyError: SpotifyError) {
-                Log.d("SearchPager", spotifyError.toString())
-            }
-
-            override fun success(playlistSimplePager: Pager<PlaylistSimple>, response: Response) {
-                val simples = playlistSimplePager.items
-
-                for (simple in simples) {
-                    Log.d("SearchPager", simple.name)
-                    Log.d("SearchPager", simple.images[1].url)
+        SpotifyWebApiAndroidService.spotifyService!!.getMyPlaylists(
+            options,
+            object : SpotifyCallback<Pager<PlaylistSimple>>() {
+                override fun failure(spotifyError: SpotifyError) {
+                    Log.d("SearchPager", spotifyError.toString())
                 }
 
-            }
-        })
+                override fun success(playlistSimplePager: Pager<PlaylistSimple>, response: Response) {
+                    val simples = playlistSimplePager.items
+
+                    for (simple in simples) {
+                        Log.d("SearchPager", simple.name)
+                        Log.d("SearchPager", simple.images[1].url)
+                    }
+
+                }
+            })
     }
 
     fun getFeatured() {
 
-        spotifyService!!.getFeaturedPlaylists(object : SpotifyCallback<FeaturedPlaylists>() {
+        SpotifyWebApiAndroidService.spotifyService!!.getFeaturedPlaylists(object :
+            SpotifyCallback<FeaturedPlaylists>() {
             override fun failure(spotifyError: SpotifyError) {
                 Log.d("SearchPager", spotifyError.toString())
             }

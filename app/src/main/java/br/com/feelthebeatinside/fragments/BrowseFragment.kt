@@ -19,7 +19,7 @@ import com.squareup.picasso.Picasso
 import com.squareup.picasso.Transformation
 
 class BrowseFragment : Fragment() {
-    val TAG = "Sptify Browsefragment"
+
 
     private var newAlbumsRecyclerView: RecyclerView? = null
     private var mAdapter: newAlbumAdapter? = null
@@ -45,14 +45,12 @@ class BrowseFragment : Fragment() {
     }
 
     private fun updateView() {
-
         val albumNewList = listManager!!.albumNewArrayList
 
         if (albumNewList.size == 0) {
 
             listener = object : SearchPager.onCompleteListener {
                 override fun onComplete() {
-                    Log.d(TAG, "onComplete!")
                     mAdapter!!.notifyDataSetChanged()
                     updateView()
                 }
@@ -61,7 +59,6 @@ class BrowseFragment : Fragment() {
 
                 }
             }
-
             SearchPager.instance(context!!).getNewRelease(listener)
         }
 
@@ -74,16 +71,9 @@ class BrowseFragment : Fragment() {
 
     private inner class newAlbumHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
 
-        private val album_image: ImageView
-        private val album_title: TextView
-        private val album_artists: TextView
-
-        init {
-
-            album_image = itemView.findViewById(R.id.new_album_image)
-            album_title = itemView.findViewById(R.id.new_album_title)
-            album_artists = itemView.findViewById(R.id.new_artist_name)
-        }
+        private val album_image: ImageView = itemView.findViewById(R.id.new_album_image)
+        private val album_title: TextView = itemView.findViewById(R.id.new_album_title)
+        private val album_artists: TextView = itemView.findViewById(R.id.new_artist_name)
 
         fun bindAlbum(albumNew: AlbumNew) {
             val title = albumNew.title

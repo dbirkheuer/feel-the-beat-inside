@@ -4,27 +4,24 @@ import android.app.Activity
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
-import android.util.Log
 import android.view.View
 import android.widget.Button
 import android.widget.EditText
 import android.widget.TextView
 import android.widget.VideoView
 import br.com.feelthebeatinside.R
+import br.com.feelthebeatinside.manager.ExceptionManager
+import br.com.feelthebeatinside.services.SpotifyService
+import br.com.feelthebeatinside.services.SpotifyWebApiAndroidService
+import br.com.feelthebeatinside.util.Consts
 import br.com.feelthebeatinside.util.RequestCode
+import com.crashlytics.android.Crashlytics
 import com.spotify.sdk.android.authentication.AuthenticationClient
-import com.spotify.sdk.android.authentication.AuthenticationRequest
 import com.spotify.sdk.android.authentication.AuthenticationResponse
+import io.fabric.sdk.android.Fabric
+
 
 class LoginActivity : Activity() {
-
-    companion object {
-        const val AUTH_TOKEN = "AUTH_TOKEN"
-        const val CLIENT_ID = "eb3ba7a349c84064b92f289c453c5e3a"
-        const val REDIRECT_URI = "br.com.feelthebeatinside://callback"
-    }
-
-    val TAG = "Spotify " + LoginActivity::class.java.getSimpleName()
 
     lateinit var textLoginWithSpotfy: TextView
     lateinit var textRecoveredHere: TextView
@@ -37,29 +34,8 @@ class LoginActivity : Activity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_login)
+        Fabric.with(this, Crashlytics())
         mapFields()
-    }
-
-    override fun onResume() {
-        super.onResume()
-        playBackgroundVideo()
-    }
-
-    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
-        super.onActivityResult(requestCode, resultCode, data)
-        if (requestCode == RequestCode.REQUEST_AUTHENTICATION_SPOTIFY) {
-            val response = AuthenticationClient.getResponse(resultCode, data)
-            when (response.type) {
-                AuthenticationResponse.Type.TOKEN -> {
-                    val intent = Intent(this@LoginActivity, MainActivity::class.java)
-                    intent.putExtra(AUTH_TOKEN, response.accessToken)
-                    startActivity(intent)
-                    destroy()
-                }
-                AuthenticationResponse.Type.ERROR -> Log.e(TAG, "Auth error: " + response.error)
-                else -> Log.d(TAG, "Auth result: " + response.error.toString())
-            }
-        }
     }
 
     private fun mapFields() {
@@ -81,7 +57,35 @@ class LoginActivity : Activity() {
 
     }
 
-    internal var mListener: View.OnClickListener = View.OnClickListener { view ->
+    override fun onResume() {
+        super.onResume()
+        playBackgroundVideo()
+    }
+
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+
+        if (requestCode == RequestCode.REQUEST_AUTHENTICATION_SPOTIFY) {
+            val response = AuthenticationClient.getResponse(resultCode, data)
+            when (response.type) {
+                AuthenticationResponse.Type.TOKEN -> {
+                    val intent = Intent(this@LoginActivity, MainActivity::class.java)
+                    intent.putExtra(Consts.NAV_PARAM_AUTH_TOKEN, response.accessToken)
+                    startActivity(intent)
+
+                    destroy()
+                }
+                AuthenticationResponse.Type.ERROR -> {
+                    ExceptionManager().showSimpleAtention(this, response.error)
+                }
+
+                else -> {
+                }
+            }
+        }
+    }
+
+    var mListener: View.OnClickListener = View.OnClickListener { view ->
         when (view.id) {
             R.id.textLoginWithSpotfy -> openLoginWindow()
             R.id.buttonSignIn -> openLoginWindow()
@@ -97,10 +101,13 @@ class LoginActivity : Activity() {
     }
 
     private fun openLoginWindow() {
-        val builder = AuthenticationRequest.Builder(CLIENT_ID, AuthenticationResponse.Type.TOKEN, REDIRECT_URI)
-        builder.setScopes(arrayOf("user-read-private", "streaming", "user-top-read", "user-read-recently-played"))
-        val request = builder.build()
-        AuthenticationClient.openLoginActivity(this, RequestCode.REQUEST_AUTHENTICATION_SPOTIFY, request)
+        SpotifyService.connect(this) {
+            val request = SpotifyWebApiAndroidService().getRequest()
+            AuthenticationClient.openLoginActivity(this, RequestCode.REQUEST_AUTHENTICATION_SPOTIFY, request)
+        }
+
+
+
     }
 
     fun destroy() {
